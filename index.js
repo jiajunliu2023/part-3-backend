@@ -60,17 +60,23 @@ app.use(cors())
 //     app.get('/', (request, response) => {
 //     response.send('<h1>Hello World!</h1>')
 //   })
-    app.get('/info', (request, response) =>{
-        const time = new Date().toString();
-        response.send(`
-            <p> Phonebook has info for ${persons.length} people</p>
-            <p>${time}</p>`
-        )
-    })
-    
+    // app.get('/info', (request, response) =>{
+    //     const time = new Date().toString();
+    //     response.send(`
+    //         <p> Phonebook has info for ${persons.length} people</p>
+    //         <p>${time}</p>`
+    //     )
+    // })
+    const path = require('path');
+    app.use(express.static(path.join(__dirname, 'dist')));
+
     app.get('/api/persons', (request, response) => {
     response.json(persons)
   })
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
 
   app.get('/api/persons/:id', (request, response) => {
     const id = request.params.id
