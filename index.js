@@ -3,6 +3,7 @@ const express =require('express')
 const app = express()
 const morgan = require('morgan')
 app.use(express.json());  //Middleware to parse JSON in the request body
+
 app.use(morgan('tiny')); //‘tiny' configuration with morgan
 
 morgan.token('body', (req) => {
@@ -14,29 +15,15 @@ morgan.token('body', (req) => {
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'));
 //show the all details like this: POST /api/persons 200 58 - 3.031 ms {"name":"Jason Abramov","number":"12-53-234357"}
 
-let persons = [
-    { 
-      "id": "1",
-      "name": "Arto Hellas", 
-      "number": "040-123456"
-    },
-    { 
-      "id": "2",
-      "name": "Ada Lovelace", 
-      "number": "39-44-5323523"
-    },
-    { 
-      "id": "3",
-      "name": "Dan Abramov", 
-      "number": "12-43-234345"
-    },
-    { 
-      "id": "4",
-      "name": "Mary Poppendieck", 
-      "number": "39-23-6423122"
-    }
-]
+//get the persons from the mongodb database (scheme)
 
+
+const dotenv = require('dotenv');
+dotenv.config()
+// loads environment variables, the MONGODB_URI from .env file file into process.env
+
+
+// connect the frontend with the frontend as the localhost number in frontend and backend are different 
 const cors = require('cors')
 app.use(cors())
 // const requestLogger = (request, response, next) => {
@@ -47,7 +34,7 @@ app.use(cors())
 //   next()
 // }
 
-
+const Phone = require('./models/phonebook')
 
 // app.use(requestLogger)
 
@@ -71,7 +58,9 @@ app.use(cors())
     app.use(express.static(path.join(__dirname, 'dist')));
 
     app.get('/api/persons', (request, response) => {
-    response.json(persons)
+      Phone.find({}).then(person =>{
+        response.json(person)
+      })
   })
 
   app.get('*', (req, res) => {
@@ -80,68 +69,64 @@ app.use(cors())
 
   app.get('/api/persons/:id', (request, response) => {
     const id = request.params.id
-    const person = persons.find(person => person.id === id)
-    if (person){
+    
+    Phone.findById(id).then(person=>{
+      if (person){
         response.json(person)
-    }
-    else{
+      }
+      else{
         //if the person is not identified
         response.status(404).end()
-    }
+      }
+    })
     
   })
-  app.delete('/api/persons/:id', (request, response) => {
+  app.delete('/api/persons/:id', (request, response, next) => {
     const id = request.params.id
-    persons = persons.filter(person => person.id !== id)
-  
-    response.status(204).end()
+    Phone.findByIdAndDelete(id)
+    .then(result =>{
+      response.status(204).end()
+    })
+    .catch(error=> next(error))
   })
 
-  app.post('/api/persons', (request, response)=>{
-    const id = Math.floor(Math.random() * 100)
-    const b = request.body;
-    if (!b.name || !b.number){
-      return response.status(400).json({
-        error:'name or number missing'
-      })
+  app.put('/api/persons/:id', (request, response, next)=>{
+    const body = request.body
+
+    const person = {
+        name: body.name,
+        number: body.number
     }
-    const nameCheckEXIST = persons.some(person => person.name === b.name)
-    if (nameCheckEXIST){
-      return response.status(400).json({
-        error:'name must be unique'
-      })
-    }
+    Phone.findByIdAndUpdate(request.params.id, person, {new: true})
+    .then(updatednote =>{
+      response.json(updatednote)
+    })
+    .catch(error=> next(error))
+    })
 
     
-    const newPerson ={
-        id: id.toString(),
-        name: b.name,
-        number: b.number
-    };
-    persons = persons.concat(newPerson)
-    response.json(newPerson);
-  })
-
-  app.put('/persons/:id', (request, response)=>{
-    const id = request.params.id
-    const index = persons.findIndex(person => person.id === id);
-
-    const updatePerson = request.body
     
-    if (index === -1){
-      return response.status(400).json({
-        error:'person is not identified'
+ 
+
+    app.post('/api/persons', (request, response) => {
+      const body = request.body
+    
+      if (body.name === undefined || body.number === undefined) {
+        return response.status(400).json({ error: 'name or number missing' })
+      }
+    
+      const person = new Phone({
+        name: body.name,
+        number: body.number,
       })
-    }
-    persons[index].name = updatePerson.name
-    persons[index].number = updatePerson.number
     
-    response.json(persons[index])
-    
-  })
+      person.save().then(savedPerson => {
+        response.json(savedPerson)
+      })
+    })
 
   
-  const PORT = process.env.PORT || 3001
+  const PORT = process.env.PORT
   app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
