@@ -64,17 +64,32 @@ function App() {
     if (persons.some(person => person.name === newName)){
       if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)){
         const person = persons.find(person => person.name === newName)
-        const id = parseInt(person.id)
+        const id = person.id
+        // id is a string
         console.log(id);
           axios
               .put(`http://localhost:3001/api/persons/${id}`, personObject)
               .then(response=>{
+                
+                // I get the null value for response.data, and using if statement to identify the error then 
+                //throw a error to be catched.
+                if (response.data){
                 console.log('updated person', response.data);
+
                 setPersons(persons.map(person => person.id !== id ? person : response.data))
+                setsuccessMessage(`Update ${response.data.name}`)
+                setTimeout(() => {
+                  setsuccessMessage(null);
+                }, 5000);
+        
+                }
+                else{
+                  throw new Error('No data identified');
+                }
               })
               
               .catch(error =>{
-                console.log(error.message)
+                console.log("errorrrrr",error.message)
                 seterrorMessage(
                   `Information of ${personObject.name} has already been removed from server`
                 )
@@ -108,11 +123,18 @@ function App() {
   }
   const deleteNumber=(person)=>{
     if (window.confirm(`Delete ${person.name}`)){
-      const id = parseInt(person.id)
+      const id = person.id
       console.log(id);
       axios.delete('http://localhost:3001/api/persons/' + id).then((response)=>{
         console.log(response);
+        setsuccessMessage(
+          `Delete ${person.name}`
+        )
+        setTimeout(() => {
+          setsuccessMessage(null)
+        }, 5000);
       })
+      
       
       
     }

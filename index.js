@@ -1,8 +1,32 @@
 //web server
-const express =require('express')
+const express = require('express')
 const app = express()
 const morgan = require('morgan')
-app.use(express.json());  //Middleware to parse JSON in the request body
+const path = require('path');
+const dotenv = require('dotenv');
+// Load environment variables
+dotenv.config()
+// loads environment variables, the MONGODB_URI from .env file file into process.env
+
+//Middleware to parse JSON in the request body
+app.use(express.json());
+
+const cors = require('cors')
+app.use(cors())
+// connect the frontend with the frontend as the localhost number in frontend and backend are different
+
+const Phone = require('./models/phonebook')
+
+
+
+
+
+// Middleware setup
+
+app.use(express.static(path.join(__dirname, 'dist')));
+
+
+  
 
 app.use(morgan('tiny')); //‘tiny' configuration with morgan
 
@@ -18,31 +42,26 @@ app.use(morgan(':method :url :status :res[content-length] - :response-time ms :b
 //get the persons from the mongodb database (scheme)
 
 
-const dotenv = require('dotenv');
-dotenv.config()
-// loads environment variables, the MONGODB_URI from .env file file into process.env
 
 
-// connect the frontend with the frontend as the localhost number in frontend and backend are different 
-const cors = require('cors')
-app.use(cors())
-// const requestLogger = (request, response, next) => {
-//   console.log('Method:', request.method)
-//   console.log('Path:  ', request.path)
-//   console.log('Body:  ', request.body)
-//   console.log('---')
-//   next()
-// }
 
-const Phone = require('./models/phonebook')
 
-// app.use(requestLogger)
 
-// const unknownEndpoint = (request, response) => {
-//   response.status(404).send({ error: 'unknown endpoint' })
-// }
 
-// app.use(unknownEndpoint)
+// request.body is undefined!
+
+const requestLogger = (request, response, next) => {
+  console.log('Method:', request.method)
+  console.log('Path:  ', request.path)
+  console.log('Body:  ', request.body)
+  console.log('---')
+  next()
+}
+
+
+
+app.use(requestLogger)
+
 
 //     app.get('/', (request, response) => {
 //     response.send('<h1>Hello World!</h1>')
@@ -54,23 +73,21 @@ const Phone = require('./models/phonebook')
     //         <p>${time}</p>`
     //     )
     // })
-    const path = require('path');
-    app.use(express.static(path.join(__dirname, 'dist')));
+    
 
-    app.get('/api/persons', (request, response) => {
+  app.get('/api/persons', (request, response) => {
       Phone.find({}).then(person =>{
         response.json(person)
       })
   })
 
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  });
+  
 
-  app.get('/api/persons/:id', (request, response) => {
-    const id = request.params.id
+  app.get('/api/persons/:id', (request, response, next) => {
     
-    Phone.findById(id).then(person=>{
+    
+    Phone.findById(request.params.id)
+    .then(person => {
       if (person){
         response.json(person)
       }
@@ -79,15 +96,17 @@ const Phone = require('./models/phonebook')
         response.status(404).end()
       }
     })
-    
+    .catch(error => next(error))
   })
+    
+  
   app.delete('/api/persons/:id', (request, response, next) => {
-    const id = request.params.id
-    Phone.findByIdAndDelete(id)
+   
+    Phone.findByIdAndDelete(request.params.id)
     .then(result =>{
       response.status(204).end()
     })
-    .catch(error=> next(error))
+    .catch(error => next(error))
   })
 
   app.put('/api/persons/:id', (request, response, next)=>{
@@ -125,6 +144,28 @@ const Phone = require('./models/phonebook')
       })
     })
 
+  const unknownEndpoint = (request, response)=>{
+    response.status(404).send({ error: 'unknown endpoint' })
+  }
+
+  // handler of requests with unknown endpoint
+  app.use(unknownEndpoint);
+
+  const errorHandler = (error, request, response, next) =>{
+    console.error(error.message)
+    if (error.name === 'CastError') {
+      return response.status(400).send({ error: 'malformatted id' })
+    } 
+    next(error)
+  }
+
+  // this has to be the last loaded middleware, also all the routes should be registered before this!
+  // handler of requests with result to errors
+  app.use(errorHandler)
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
   
   const PORT = process.env.PORT
   app.listen(PORT, () => {
