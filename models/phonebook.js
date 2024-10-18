@@ -18,9 +18,25 @@ mongoose.connect(url)
 
 
 const PhoneSchema = new mongoose.Schema({
-  name: String,
-  number: String,
-})
+  name: {
+    type: String,
+    minLength: [3, 'The number of name character is at least 3'],
+    required: [true, 'The name is required']
+  },
+  number: {
+    type: String,
+    minLength: [8, 'The number of phone number character is at least 8'],
+    validate:{
+      validator: function(v){
+        return /^\d{2,3}-\d+$/.test(v);
+        //(2 or 3 numbers) - numbers
+      },
+      message: props =>`${props.value} is not a valid phone number`
+  },
+    required: [true, 'The phone number is required']
+  }
+}
+)
 
 
 //transform the id in a object to a string type data 

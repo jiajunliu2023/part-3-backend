@@ -1,3 +1,5 @@
+//after deploying the fullstack on internet, everytime making change on the frontend, run npm run build
+
 import axios from 'axios'
 import { useState, useEffect } from 'react';
 import './index.css';
@@ -104,14 +106,30 @@ function App() {
       axios
           .post('http://localhost:3001/api/persons',personObject)
           .then(response =>{
-            setPersons(persons.concat(response.data))
-            setsuccessMessage(
-              `Added ${response.data.name}`
-            )
-            setTimeout(() => {
-              setsuccessMessage(null)
-            }, 5000);
-            //set the sucess message to null after 5 seconds 
+            if (response.data){
+              setPersons(persons.concat(response.data))
+              setsuccessMessage(
+                `Added ${response.data.name}`
+              )
+              setTimeout(() => {
+                setsuccessMessage(null)
+              }, 5000);
+              //set the sucess message to null after 5 seconds
+          }
+          else{
+            throw new Error('validation error');
+          } 
+          })
+          .catch(error =>{
+            if (error.response && error.response.status === 400){
+              seterrorMessage(error.response.data.error); // show the error message from the server
+              setTimeout(() => {
+              seterrorMessage(null);
+                }, 5000);
+              } else {
+                console.error('error occurred:', error);
+              }
+                        
           })
           
     // the method does not mutate the original person, but creating a new copy of the array with new added item

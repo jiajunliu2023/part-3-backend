@@ -2,16 +2,16 @@
 
 # GET http://localhost:3001/api/persons/670e1fed184f7c6012d5b044
 
-DELETE http://localhost:3001/api/persons/670eb3ee67e4cb119171fb56 
+# DELETE http://localhost:3001/api/persons/670eb3ee67e4cb119171fb56 
 
-# POST http://localhost:3001/api/persons 
-# Content-Type: application/json
+POST http://localhost:3001/api/persons 
+Content-Type: application/json
 
-# {
+{
     
-#     "name": "Lily", 
-#     "number": "12-99-134357"
-# }
+    "name": "Li", 
+    "number": "12-99"
+}
 
 # PUT http://localhost:3001/api/persons/670e1fed184f7c6012d5b044 
 # Content-Type: application/json
